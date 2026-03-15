@@ -13,7 +13,8 @@
       "infoPlist": {
         "NSBluetoothAlwaysUsageDescription": "This app uses Bluetooth to create a peripheral device",
         "NSBluetoothPeripheralUsageDescription": "This app uses Bluetooth to create a peripheral device"
-      }
+      },
+      "bundleIdentifier": "com.ak22git7488.expoakdemon"
     },
     "android": {
       "adaptiveIcon": {
@@ -27,11 +28,11 @@
       "permissions": [
         "android.permission.BLUETOOTH",
         "android.permission.BLUETOOTH_ADMIN",
-        "android.permission.BLUETOOTH_ADVERTISE",
+        // "android.permission.BLUETOOTH_ADVERTISE",
         "android.permission.BLUETOOTH_SCAN",
         "android.permission.BLUETOOTH_CONNECT",
         "android.permission.ACCESS_FINE_LOCATION",
-        "android.permission.ACCESS_COARSE_LOCATION"
+        // "android.permission.ACCESS_COARSE_LOCATION"
       ],
       "package": "com.ak22git7488.expoakdemon"
     },
@@ -52,7 +53,8 @@
             "backgroundColor": "#000000"
           }
         }
-      ]
+      ],
+      "react-native-ble-plx"
     ],
     "experiments": {
       "typedRoutes": true,

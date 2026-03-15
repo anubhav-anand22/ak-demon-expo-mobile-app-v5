@@ -141,7 +141,7 @@
 //   );
 // }
 
-import { setServices, startAdvertising, stopAdvertising, addEventListener } from "munim-bluetooth";
+// import { setServices, startAdvertising, stopAdvertising, addEventListener } from "munim-bluetooth";
 
 import React, { useEffect, useState, useRef } from "react";
 import {
@@ -165,101 +165,132 @@ export default function App() {
 
   useEffect(() => {
     // Listen for connection events (Optional, but good for UI)
-    const connSubRemove = addEventListener("connectionStateChanged", (event) => {
-      setIsConnected(event.connected);
-    });
+    // const connSubRemove = addEventListener("connectionStateChanged", (event) => {
+    //   setIsConnected(event.connected);
+    // });
 
-    // 2. Listen for incoming write requests from the Go app
-    const writeSubRemove = addEventListener("onWriteRequest", (event) => {
-      // NOTE: Depending on how "munim-bluetooth-peripheral" is built,
-      // event.value might be a base64 string. If your JSON looks like gibberish,
-      // you will need to decode it from base64 first!
-      const incomingChunk = event.value;
+    // // 2. Listen for incoming write requests from the Go app
+    // const writeSubRemove = addEventListener("onWriteRequest", (event) => {
+    //   // NOTE: Depending on how "munim-bluetooth-peripheral" is built,
+    //   // event.value might be a base64 string. If your JSON looks like gibberish,
+    //   // you will need to decode it from base64 first!
+    //   const incomingChunk = event.value;
 
-      // Append the new chunk to our ongoing buffer
-      messageBuffer.current += incomingChunk;
+    //   // Append the new chunk to our ongoing buffer
+    //   messageBuffer.current += incomingChunk;
 
-      // 3. Check if we received the end-of-message delimiter (\n)
-      if (messageBuffer.current.includes("\n")) {
-        try {
-          // Clean up the string and parse the full JSON
-          const completeMessage = messageBuffer.current.trim();
-          const parsedData = JSON.parse(completeMessage);
+    //   // 3. Check if we received the end-of-message delimiter (\n)
+    //   if (messageBuffer.current.includes("\n")) {
+    //     try {
+    //       // Clean up the string and parse the full JSON
+    //       const completeMessage = messageBuffer.current.trim();
+    //       const parsedData = JSON.parse(completeMessage);
 
-          console.log("Successfully assembled full JSON:", parsedData);
-          Alert.alert("Data Received!", JSON.stringify(parsedData));
-        } catch (error) {
-          console.error("Failed to parse JSON string:", messageBuffer.current);
-        } finally {
-          // 4. ALWAYS clear the buffer after processing, ready for the next message
-          messageBuffer.current = "";
-        }
-      }
-    });
+    //       console.log("Successfully assembled full JSON:", parsedData);
+    //       Alert.alert("Data Received!", JSON.stringify(parsedData));
+    //     } catch (error) {
+    //       console.error("Failed to parse JSON string:", messageBuffer.current);
+    //     } finally {
+    //       // 4. ALWAYS clear the buffer after processing, ready for the next message
+    //       messageBuffer.current = "";
+    //     }
+    //   }
+    // });
 
-    return () => {
-      connSubRemove();
-      writeSubRemove();
-    };
+    // return () => {
+    //   connSubRemove();
+    //   writeSubRemove();
+    // };
   }, []);
 
-  const requestBluetoothPermissions = async () => {
-    // ... (Your existing permission logic remains exactly the same) ...
-    if (Platform.OS === "android" && Platform.Version >= 31) {
-      const granted = await PermissionsAndroid.requestMultiple([
+  async function requestBluetoothPermissions() {
+  if (Platform.OS === 'android') {
+    if (Platform.Version >= 31) {
+      // Android 12+ (API 31+)
+      const result = await PermissionsAndroid.requestMultiple([
+        PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
         PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
-        PermissionsAndroid.PERMISSIONS.BLUETOOTH_ADVERTISE,
-        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
       ]);
 
       return (
-        granted["android.permission.BLUETOOTH_CONNECT"] === PermissionsAndroid.RESULTS.GRANTED &&
-        granted["android.permission.BLUETOOTH_ADVERTISE"] === PermissionsAndroid.RESULTS.GRANTED
+        result['android.permission.BLUETOOTH_CONNECT'] === PermissionsAndroid.RESULTS.GRANTED &&
+        result['android.permission.BLUETOOTH_SCAN'] === PermissionsAndroid.RESULTS.GRANTED
       );
+    } else {
+      // Android 11 and below (API 30-)
+      const result = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+        {
+          title: 'Location Permission',
+          message: 'Bluetooth Low Energy requires Location permission to scan for devices.',
+          buttonNeutral: 'Ask Me Later',
+          buttonNegative: 'Cancel',
+          buttonPositive: 'OK',
+        }
+      );
+      return result === PermissionsAndroid.RESULTS.GRANTED;
     }
-    return true;
-  };
+  }
+  return true; // iOS handles permissions differently
+}
+
+  // const requestBluetoothPermissions = async () => {
+  //   // ... (Your existing permission logic remains exactly the same) ...
+  //   if (Platform.OS === "android" && Platform.Version >= 31) {
+  //     const granted = await PermissionsAndroid.requestMultiple([
+  //       PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
+  //       PermissionsAndroid.PERMISSIONS.BLUETOOTH_ADVERTISE,
+  //       PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+  //     ]);
+
+  //     return (
+  //       granted["android.permission.BLUETOOTH_CONNECT"] === PermissionsAndroid.RESULTS.GRANTED &&
+  //       granted["android.permission.BLUETOOTH_ADVERTISE"] === PermissionsAndroid.RESULTS.GRANTED
+  //     );
+  //   }
+  //   return true;
+  // };
 
   const handleStartPeripheral = async () => {
-    const hasPermission = await requestBluetoothPermissions();
-    if (!hasPermission) {
-      Alert.alert("Permission Denied", "I need Bluetooth permissions to act as a key.");
-      return;
-    }
-    try {
-      await setServices([
-        {
-          uuid: "0000180D-0000-1000-8000-00805F9B34FB",
-          characteristics: [
-            {
-              uuid: "00002A37-0000-1000-8000-00805F9B34FB",
-              // 5. CRITICAL: Add "writeWithoutResponse" (or "write") so Go can send data
-              properties: ["read", "notify", "writeWithoutResponse", "write"],
-              // permissions: ["readable", "writeable"], // Ensure OS permissions allow it
-              value: "",
+    // const hasPermission = await requestBluetoothPermissions();
+    // if (!hasPermission) {
+    //   Alert.alert("Permission Denied", "I need Bluetooth permissions to act as a key.");
+    //   return;
+    // }
+    // try {
+    //   await setServices([
+    //     {
+    //       uuid: "0000180D-0000-1000-8000-00805F9B34FB",
+    //       characteristics: [
+    //         {
+    //           uuid: "00002A37-0000-1000-8000-00805F9B34FB",
+    //           // 5. CRITICAL: Add "writeWithoutResponse" (or "write") so Go can send data
+    //           properties: ["read", "notify", "writeWithoutResponse", "write"],
+    //           // permissions: ["readable", "writeable"], // Ensure OS permissions allow it
+    //           value: "",
 
-            },
-          ],
-        },
-      ]);
+    //         },
+    //       ],
+    //     },
+    //   ]);
 
-      await startAdvertising({
-        serviceUUIDs: ["0000180D-0000-1000-8000-00805F9B34FB"],
-        manufacturerData: "474F424B",
-      });
+    //   await startAdvertising({
+    //     serviceUUIDs: ["0000180D-0000-1000-8000-00805F9B34FB"],
+    //     manufacturerData: "474F424B",
+    //   });
 
-      setIsAdvertising(true);
-      console.log("Broadcasting as:", DEVICE_NAME);
-    } catch (error) {
-      console.error("Start Error:", error);
-      Alert.alert("Error", "Failed to start advertising");
-    }
+    //   setIsAdvertising(true);
+    //   console.log("Broadcasting as:", DEVICE_NAME);
+    // } catch (error) {
+    //   console.error("Start Error:", error);
+    //   Alert.alert("Error", "Failed to start advertising");
+    // }
   };
 
   const handleStopPeripheral = async () => {
-    await stopAdvertising();
-    setIsAdvertising(false);
-    setIsConnected(false);
+    // await stopAdvertising();
+    // setIsAdvertising(false);
+    // setIsConnected(false);
   };
 
   return (
